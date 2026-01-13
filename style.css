@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+:root { --neon: #00f2ff; --pink: #ff0055; }
+body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; }
+
+#game-wrap { position: relative; width: 100vw; height: 100vh; }
+#roadCanvas { position: absolute; inset: 0; z-index: 1; }
+
+#ui-layer { position: absolute; inset: 0; z-index: 9999; pointer-events: none; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); pointer-events: auto; }
+
+.glass-panel { background: #0a0a0f; border: 2px solid var(--neon); padding: 40px; text-align: center; width: 300px; }
+.clickable { cursor: pointer !important; padding: 20px; font-weight: 900; font-family: 'Orbitron'; width: 100%; border: none; pointer-events: auto !important; margin-top: 15px; }
+.main-btn { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+
+.realistic-title { font-size: 2.5rem; color: #fff; margin: 0; }
+.accent { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+.tagline { font-size: 10px; color: var(--neon); letter-spacing: 3px; margin-bottom: 20px; }
+
+#hud { position: absolute; top: 20px; left: 20px; display: flex; gap: 20px; color: #fff; pointer-events: none; }
+.hud-item { border-left: 3px solid var(--pink); padding: 5px 15px; background: rgba(0,0,0,0.6); }
+.label { font-size: 8px; color: var(--neon); display: block; }
+.hidden { display: none !important; }

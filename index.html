@@ -1,0 +1,27 @@
+<div id="game-wrap">
+  <div id="ui-layer">
+    <div id="start-screen" class="overlay">
+      <div class="glass-panel">
+        <h1 class="realistic-title">VORTEX <span class="accent">ULTRA</span></h1>
+        <p class="tagline">ACCELERATION PROTOCOL ACTIVE</p>
+        <button class="clickable main-btn" onmousedown="startGame()">ENGAGE ENGINE</button>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="hud-item"><span class="label">LOCATION</span><span id="location">0, 0</span></div>
+      <div class="hud-item"><span class="label">PROGRESS</span><span id="percentage">0%</span></div>
+      <div id="speedometer"><span id="speed-display">0</span><small>KM/H</small></div>
+    </div>
+
+    <div id="end-screen" class="overlay hidden">
+      <div class="glass-panel">
+        <h2 class="accent">SYSTEM FAILURE</h2>
+        <p id="final-score" style="color:#fff">DISTANCE: 0m</p>
+        <button class="clickable main-btn" onmousedown="rebootGame()">REBOOT SYSTEM</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="roadCanvas"></canvas>
+</div>
