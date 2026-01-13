@@ -1,27 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vortex Ultra | Vercel Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        :root { --neon: #00f2ff; --pink: #ff0055; --bg: #050508; }
+        
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; }
+
+        #game-wrap { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* UI LAYER - Highest Priority */
+        #ui-layer { position: absolute; inset: 0; z-index: 9999; pointer-events: none; }
+        
+        .overlay { 
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; 
+            background: rgba(0,0,0,0.85); pointer-events: auto; 
+        }
+
+        .glass-panel { 
+            background: rgba(10, 10, 15, 0.95); border: 2px solid var(--neon); padding: 40px; 
+            text-align: center; width: 320px; box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); 
+        }
+
+        .realistic-title { font-size: 2.5rem; letter-spacing: -1px; margin: 0; font-weight: 900; }
+        .accent { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+        .tagline { font-size: 10px; color: var(--neon); letter-spacing: 3px; margin-bottom: 30px; }
+
+        .clickable { 
+            background: var(--neon); color: #000; border: none; padding: 20px; 
+            font-weight: 900; font-family: 'Orbitron'; cursor: pointer; width: 100%;
+            transition: 0.2s; pointer-events: auto; text-transform: uppercase;
+        }
+        .clickable:hover { background: #fff; box-shadow: 0 0 20px var(--neon); }
+        .clickable:active { transform: scale(0.95); }
+
+        /* HUD */
+        #hud { position: absolute; top: 20px; left: 20px; display: flex; gap: 20px; pointer-events: none; }
+        .hud-item { border-left: 3px solid var(--pink); padding: 5px 15px; background: rgba(0,0,0,0.6); }
+        .label { font-size: 8px; color: var(--neon); display: block; }
+        .speed-val { font-size: 1.2rem; font-weight: 900; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
 <div id="game-wrap">
-  <div id="ui-layer">
-    <div id="start-screen" class="overlay">
-      <div class="glass-panel">
-        <h1 class="realistic-title">VORTEX <span class="accent">ULTRA</span></h1>
-        <p class="tagline">ACCELERATION PROTOCOL ACTIVE</p>
-        <button class="clickable main-btn" onmousedown="startGame()">ENGAGE ENGINE</button>
-      </div>
+    <div id="ui-layer">
+        <div id="start-screen" class="overlay">
+            <div class="glass-panel">
+                <h1 class="realistic-title">VORTEX <span class="accent">ULTRA</span></h1>
+                <p class="tagline">VERCEL DEPLOYMENT READY</p>
+                <button class="clickable" onmousedown="startGame()">Engage Engine</button>
+            </div>
+        </div>
+
+        <div id="hud" class="hidden">
+            <div class="hud-item"><span class="label">LOCATION</span><span id="location" class="speed-val">0, 0</span></div>
+            <div class="hud-item"><span class="label">PROGRESS</span><span id="percentage" class="speed-val">0%</span></div>
+            <div class="hud-item"><span class="label">KM/H</span><span id="speed-display" class="speed-val">0</span></div>
+        </div>
+
+        <div id="end-screen" class="overlay hidden">
+            <div class="glass-panel">
+                <h2 class="accent">SYSTEM FAILURE</h2>
+                <p id="final-score" style="margin-bottom: 20px;">DISTANCE: 0m</p>
+                <button class="clickable" onmousedown="rebootGame()">Reboot System</button>
+            </div>
+        </div>
     </div>
 
-    <div id="hud" class="hidden">
-      <div class="hud-item"><span class="label">LOCATION</span><span id="location">0, 0</span></div>
-      <div class="hud-item"><span class="label">PROGRESS</span><span id="percentage">0%</span></div>
-      <div id="speedometer"><span id="speed-display">0</span><small>KM/H</small></div>
-    </div>
-
-    <div id="end-screen" class="overlay hidden">
-      <div class="glass-panel">
-        <h2 class="accent">SYSTEM FAILURE</h2>
-        <p id="final-score" style="color:#fff">DISTANCE: 0m</p>
-        <button class="clickable main-btn" onmousedown="rebootGame()">REBOOT SYSTEM</button>
-      </div>
-    </div>
-  </div>
-
-  <canvas id="roadCanvas"></canvas>
+    <canvas id="roadCanvas"></canvas>
 </div>
+
+<script>
+    const canvas = document.getElementById('roadCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Resize handling
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let gameState = 'START';
+    let distance = 0, gameSpeed = 12, enemies = [];
+    const laneWidth = 140, roadWidth = laneWidth * 3;
+    let roadX = (canvas.width - roadWidth) / 2;
+    
+    let player = { 
+        lane: 1, 
+        x: roadX + (laneWidth * 1.5), 
+        y: canvas.height - 180, 
+        targetX: 0 
+    };
+
+    // Ensure road position is updated on resize
+    function updateRoadPos() {
+        roadX = (canvas.width - roadWidth) / 2;
+        player.targetX = roadX + (player.lane * laneWidth) + (laneWidth / 2);
+    }
+
+    window.startGame = function() {
+        updateRoadPos();
+        player.x = player.targetX;
+        gameState = 'PLAYING';
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        spawnEnemy();
+    };
+
+    window.rebootGame = function() {
+        gameState = 'PLAYING';
+        distance = 0;
+        gameSpeed = 12;
+        enemies = [];
+        player.lane = 1;
+        updateRoadPos();
+        player.x = player.targetX;
+        
+        document.getElementById('end-screen').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        spawnEnemy();
+    };
+
+    function spawnEnemy() {
+        if (gameState !== 'PLAYING') return;
+        
+        enemies.push({
+            x: roadX + (Math.floor(Math.random() * 3) * laneWidth) + laneWidth/2,
+            y: -200, 
+            speed: gameSpeed + (Math.random() * 10)
+        });
+        
+        // Dynamic spawn rate based on acceleration
+        let spawnRate = Math.max(250, 1100 - (gameSpeed * 12));
+        setTimeout(spawnEnemy, spawnRate);
+    }
+
+    function drawCar(x, y, color, isPlayer) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (!isPlayer) ctx.scale(1, -1);
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 15; ctx.shadowColor = color;
+        ctx.fillRect(-22, -45, 44, 90);
+        ctx.fillStyle = "#000"; ctx.fillRect(-18, -12, 36, 22);
+        ctx.restore();
+    }
+
+    function loop() {
+        ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        updateRoadPos(); // Keep centered on screen resize
+        ctx.fillStyle = '#0f0f14'; ctx.fillRect(roadX, 0, roadWidth, canvas.height);
+        
+        // Lanes
+        ctx.strokeStyle = '#222'; ctx.setLineDash([40, 80]);
+        ctx.lineDashOffset = -(distance * 2.5);
+        for(let i=1; i<3; i++) {
+            ctx.beginPath(); ctx.moveTo(roadX + i*laneWidth, 0); ctx.lineTo(roadX + i*laneWidth, canvas.height); ctx.stroke();
+        }
+
+        if (gameState === 'PLAYING') {
+            distance += 1;
+            gameSpeed += 0.008; // High Acceleration
+            player.x += (player.targetX - player.x) * 0.15;
+
+            enemies.forEach((en, i) => {
+                en.y += en.speed;
+                if (Math.abs(en.x - player.x) < 45 && Math.abs(en.y - player.y) < 85) {
+                    gameState = 'END';
+                    document.getElementById('end-screen').classList.remove('hidden');
+                    document.getElementById('hud').classList.add('hidden');
+                    document.getElementById('final-score').innerText = `DISTANCE: ${distance}m`;
+                }
+                if (en.y > canvas.height + 200) enemies.splice(i, 1);
+            });
+
+            enemies.forEach(en => drawCar(en.x, en.y, "#00f2ff", false));
+            drawCar(player.x, player.y, "#ff0055", true);
+            
+            document.getElementById('location').innerText = `${Math.round(player.x)}, ${distance}`;
+            document.getElementById('percentage').innerText = `${Math.min(100, Math.floor(distance/50))}%`;
+            document.getElementById('speed-display').innerText = Math.floor(gameSpeed * 12);
+        }
+        requestAnimationFrame(loop);
+    }
+
+    window.onkeydown = (e) => {
+        if (gameState !== 'PLAYING') return;
+        if (["a", "ArrowLeft"].includes(e.key) && player.lane > 0) player.lane--;
+        if (["d", "ArrowRight"].includes(e.key) && player.lane < 2) player.lane++;
+        player.targetX = roadX + (player.lane * laneWidth) + laneWidth/2;
+    };
+
+    loop();
+</script>
+</body>
+</html>
